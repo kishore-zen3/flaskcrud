@@ -1,0 +1,54 @@
+# JSON, CRUD functions for postman testing
+
+@app.route('/users/json/all')
+def get_users_json():
+    init_list()
+    u = json.dumps(users, indent=True)
+    resp = Response(u, status=200, mimetype='application/json')
+    return resp
+
+@app.route('/users/json/<username>')
+def get_user_json(username):
+    dbconnection.sqlite_connection.init_app(app)
+    cursor = dbconnection.sqlite_connection.get_cursor()
+    cursor.execute('''SELECT * FROM Users WHERE Username = ? ''', (username,))
+    dbconnection.sqlite_connection.commit()
+    row = cursor.fetchone()
+    return json.dumps({"id":row[0], "username":row[1], "password":row[2], "firstname":row[3], "lastname":row[4]}, indent=True)
+
+@app.route('/users/json/add', methods = ['POST'])
+def add_new_user_json():
+    user = request.get_json(force=True)
+    dbconnection.sqlite_connection.init_app(app)
+    cursor = dbconnection.sqlite_connection.get_cursor()
+    uname = str(user['username'])
+    pword = str(user['password'])
+    fname = str(user['firstname'])
+    lname = str(user['lastname'])
+    cursor.execute('''INSERT INTO Users(Username, Password, Firstname, Lastname) VALUES(?, ?, ?, ?)''', (uname, pword, fname, lname))    
+    dbconnection.sqlite_connection.commit()
+    dbconnection.sqlite_connection.close_connection()
+    return json.dumps(user, indent=True)
+
+@app.route('/users/json/update', methods = ['PUT', 'POST'])
+def update_user_json():
+    user = request.get_json(force=True)
+    dbconnection.sqlite_connection.init_app(app)
+    cursor = dbconnection.sqlite_connection.get_cursor()
+    uname = str(user['username'])
+    pword = str(user['password'])
+    fname = str(user['firstname'])
+    lname = str(user['lastname'])
+    cursor.execute('''UPDATE Users SET Username = ?, Password = ?, Firstname = ?, Lastname = ? WHERE Id = ? ''', (uname, pword, fname, lname, user['id']))
+    dbconnection.sqlite_connection.commit()
+    dbconnection.sqlite_connection.close_connection()
+    return json.dumps(user, indent=True)
+
+@app.route('/users/json/delete', methods = ['DELETE','POST'])
+def delete_user_json():
+    user = request.get_json(force = True)
+    dbconnection.sqlite_connection.init_app(app)
+    dbconnection.sqlite_connection.connection.execute('''DELETE FROM Users WHERE Id = ? ''', (user['id'],))
+    dbconnection.sqlite_connection.commit()
+    dbconnection.sqlite_connection.close_connection()
+    return "Success!"
